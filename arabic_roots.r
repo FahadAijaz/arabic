@@ -1,0 +1,1 @@
+roots<- readLines("./data/roots.txt", encoding='UTF-8')
