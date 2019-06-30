@@ -8,6 +8,7 @@ import glob as g
 import xml.etree.cElementTree as et
 from cltk.stop.arabic.stopword_filter import stopwords_filter as ar_stop_filter
 from cltk.phonology.arabic.romanization import transliterate
+import sys
 
 
 def reverse_transliterate(s: str):
@@ -20,80 +21,16 @@ def reverse_transliterate(s: str):
 
 
 # %%
+curr_input = int(sys.argv[1])
 path = "/home/knight/repos/texts/Arabic/Lane/opensource/*"
 files = g.glob(path)
-curr_abs = files[4]
+total_files = len(files)
+if not (curr_input >= 0 and curr_input < total_files):
+    exit
+curr_abs = files[curr_input]
 print(curr_abs)
 parsedXML = et.parse(curr_abs)
 r = parsedXML.getroot()
-
-
-# %%
-
-
-bd = r[1].getiterator()
-all_entries = {}
-roots = []
-for b in bd:
-    root_english = ""
-    root = ""
-    if b.find("div2"):
-        root_node = b.find("div2")
-        root_english = root_node.get("n")
-        roots.append(reverse_transliterate(root_english))
-    if b.find("entryFree"):
-        b.findall("entryFree")
-        ef = b.find("entryFree")
-        wrd = (ef.get('key'), root)
-        childs = ef.getchildren()
-        c_def = ""
-        c_data = []
-        for c in childs:
-            if c.tag == "hi":
-                c_data.append(c.text)
-            # c_data.append(c.find("hi"))
-            if c.tag == "foreign":
-                arabic_string = reverse_transliterate(c.text)
-                c_data.append(arabic_string)
-            c_def = ' '.join(c_data)
-        all_entries[wrd] = c_def
-
-print(len(roots))
-print(len(all_entries))
-
-# %%
-
-len(all_entries)
-item_list = list(all_entries.items())
-print(item_list[2])
-
-
-# %%
-mode = 'buckwalter'
-reverse = False
-ignore = ''
-ar_defs = []
-for k in all_entries.keys():
-    print(k)
-    ar_defs.append(reverse_transliterate(k))
-
-ar_defs[0:15]
-
-# %%
-
-bd = r[1].getiterator()
-roots = []
-entries = []
-for b in bd:
-    div2s = b.findall("div2")
-    for d in div2s:
-        roots.append(d.get("n"))
-        efs = d.findall("entryFree")
-        for e in efs:
-            entries.append(e.get("key"))
-
-print(len(entries))
-print(len(roots))
 
 
 # %%
@@ -141,5 +78,5 @@ lex_df = p.DataFrame(transposed, columns=[
                      "EnglishRoot", "EnglishWord", "ArabicRoot", "ArabicWord", "Definition"])
 curr_file_wo_ext = os.path.basename(curr_abs)
 curr_file_name = os.path.splitext(curr_file_wo_ext)[0] + ".feather"
-par_dir = "./data/"
+par_dir = "./data/lexicon/"
 lex_df.to_feather(fname=par_dir + curr_file_name)
