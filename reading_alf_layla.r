@@ -23,3 +23,28 @@ df_n <- first_n_rows %>% pull(.) %>%
     map_dfr(~ udpipe(x=.x, object=model) %>% as_tibble(), .id="p_id")
 
 write_rds(df_n, "./data/alf_layla.rds")
+
+### filter stopwords from the dataframe ### 
+library(arabicStemR)
+tokens_only <- df_n %>% select(token) %>% rename (word=token) %>% filter(word != "")
+arabic_stopwords <- data_frame(word = removeStopWords("سلام")$arabicStopwordList)
+
+wo_stop <- tokens_only %>%  anti_join (arabic_stopwords, by="word") 
+
+l_w <- wo_stop %>% pull(word) 
+
+with_stems <- purrr::map (l_w, ~ arabicStemR::stem(.x, returnStemList=TRUE))
+with_stems <- with_stems %>% discard (~ .x$text == "") 
+### for one row ###
+tibble(orig=names(with_stems[[1]]$stemlist), in_eng = with_stems[[1]]$text, in_arabic= with_stems[[1]]$stemlist)
+### for one row <end> #######
+
+with_stems %>% map_dfr( ~ tibble(orig=names(.x$stemlist), in_eng = .x$text, in_arabic= .x$stemlist))
+
+
+
+
+
+all_original <- with_stems %>% map (~list(original=names(.x$stemlist), stem=.x[2][[1]][[1]], english = .x$text ))
+words_df <- all_original %>% map_dfr (~ .x %>% as_tibble())
+write_rds(words_df, "./data/alf_layla_words.rds")
