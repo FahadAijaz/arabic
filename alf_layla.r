@@ -2,6 +2,7 @@
 library(xml2)
 library(tidyverse)
 library(udpipe)
+library(feather)
 
 ##dl <- udpipe_download_model(language = "arabic")
 
@@ -19,13 +20,17 @@ text <- purrr::map(r_list$TEI$text$body$div1,
                    ~ paste(unlist(.), collapse = " "))
 
 alf <-  tibble(line = text)  %>% unnest() %>% mutate(linenumber = row_number())
+alf_size <- alf %>% tally() %>% pull(n)
+seq_40 <- seq (1, alf_size, 40)
 
-
-first_n_rows <- alf %>% top_n(40)
-### trying map_dfr() ####
-df_n <- first_n_rows %>% pull(line) %>% 
-  map_dfr(~ udpipe(x=.x, object=model) %>% as_tibble(), .id="p_id")
-
+for (i in seq_40){  
+  first_n_rows <- alf %>% slice(i:(i+40))
+  ### trying map_dfr() ####
+  df_n <- first_n_rows %>% pull(line) %>% 
+    map_dfr(~ udpipe(x=.x, object=model) %>% as_tibble(), .id="p_id")
+  wfilename = paste(c((i %>% as.character()),"TO",((i + 40) %>% as.character()),".feather"),collapse="")
+  feather::write_feather(df_n,wfilename)
+}
 
 library(arabicStemR)
 tokens_only <- df_n %>% select(token) %>% rename (word=token) %>% filter(word != "")
